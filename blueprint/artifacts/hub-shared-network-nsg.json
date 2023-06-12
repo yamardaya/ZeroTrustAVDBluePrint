@@ -83,9 +83,6 @@
             "name": "management"
           },
           {
-            "name": "jump-box"
-          },
-          {
             "name": "workload"
           }
         ],
@@ -133,30 +130,6 @@
             "name": "management-subnet",
             "rules": [
               {
-                "name": "AllowJumpBoxInBound",
-                "properties": {
-                  "protocol": "TCP",
-                  "sourcePortRange": "*",
-                  "access": "Allow",
-                  "priority": 3050,
-                  "direction": "Inbound",
-                  "destinationPortRanges": [
-                    "3389",
-                    "22"
-                  ],
-                  "sourceApplicationSecurityGroups": [
-                    {
-                      "id": "[resourceId('Microsoft.Network/applicationSecurityGroups', concat(variables('deployment-prefix'), '-jump-box-asg'))]"
-                    }
-                  ],
-                  "destinationApplicationSecurityGroups": [
-                    {
-                      "id": "[resourceId('Microsoft.Network/applicationSecurityGroups', concat(variables('deployment-prefix'), '-management-asg'))]"
-                    }
-                  ]
-                }
-              },
-              {
                 "name": "AllowAzureCloudOutBound",
                 "properties": {
                   "protocol": "TCP",
@@ -167,81 +140,6 @@
                       "id": "[resourceId('Microsoft.Network/applicationSecurityGroups', concat(variables('deployment-prefix'), '-management-asg'))]"
                     }
                   ],
-                  "destinationAddressPrefix": "AzureCloud",
-                  "access": "Allow",
-                  "priority": 3600,
-                  "direction": "Outbound"
-                }
-              },
-              {
-                "name": "AllowIPAddressesOutBound",
-                "properties": {
-                  "protocol": "TCP",
-                  "sourcePortRange": "*",
-                  "destinationPortRange": "443",
-                  "sourceAddressPrefix": "VirtualNetwork",
-                  "destinationAddressPrefix": "[parameters('destinationAddresses')]",
-                  "access": "Allow",
-                  "priority": 3650,
-                  "direction": "Outbound",
-                  "sourcePortRanges": [],
-                  "destinationPortRanges": [],
-                  "sourceAddressPrefixes": [],
-                  "destinationAddressPrefixes": []
-                }
-              }
-            ]
-          },
-          {
-            "name": "jump-box-subnet",
-            "rules": [
-              {
-                "name": "AllowVnetInbound",
-                "properties": {
-                  "protocol": "TCP",
-                  "sourcePortRange": "*",
-                  "sourceAddressPrefix": "VirtualNetwork",
-                  "access": "Allow",
-                  "priority": 3050,
-                  "direction": "Inbound",
-                  "destinationPortRanges": [
-                    "3389",
-                    "22"
-                  ],
-                  "destinationApplicationSecurityGroups": [
-                    {
-                      "id": "[resourceId('Microsoft.Network/applicationSecurityGroups', concat(variables('deployment-prefix'), '-jump-box-asg'))]"
-                    }
-                  ]
-                }
-              },
-              {
-                "name": "AllowVnetOutboundRestricted",
-                "properties": {
-                  "protocol": "TCP",
-                  "sourcePortRange": "*",
-                  "access": "Allow",
-                  "priority": 3551,
-                  "direction": "Outbound",
-                  "destinationPortRanges": [
-                    "3389",
-                    "22"
-                  ],
-                  "sourceApplicationSecurityGroups": [
-                    {
-                      "id": "[resourceId('Microsoft.Network/applicationSecurityGroups', concat(variables('deployment-prefix'), '-jump-box-asg'))]"
-                    }
-                  ],
-                  "destinationAddressPrefix": "VirtualNetwork"
-                }
-              },
-              {
-                "name": "AllowAzureCloudOutBound",
-                "properties": {
-                  "protocol": "TCP",
-                  "sourcePortRange": "*",
-                  "destinationPortRange": "443",
-                  "sourceAddressPrefix": "VirtualNetwork",
                   "destinationAddressPrefix": "AzureCloud",
                   "access": "Allow",
                   "priority": 3600,
@@ -271,7 +169,7 @@
             "name": "workload-subnet",
             "rules": [
               {
-                "name": "AllowJumpBoxInBound",
+                "name": "AllowBastionInBound",
                 "properties": {
                   "protocol": "TCP",
                   "sourcePortRange": "*",

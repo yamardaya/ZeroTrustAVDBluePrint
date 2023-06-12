@@ -168,28 +168,12 @@
           "description": "Bastion subnet address prefix."
         }
       },
-      "hub-shared-network-vnet_gatewaySubnetAddressPrefix": {
-        "type": "string",
-        "defaultValue": "10.0.2.0/24",
-        "metadata": {
-          "displayName": "Gateway subnet address prefix",
-          "description": "Gateway subnet address prefix."
-        }
-      },
       "hub-shared-network-vnet_managementSubnetAddressPrefix": {
         "type": "string",
         "defaultValue": "10.0.3.0/24",
         "metadata": {
           "displayName": "Management subnet address prefix",
           "description": "Management subnet address prefix."
-        }
-      },
-      "hub-shared-network-vnet_jumpBoxSubnetAddressPrefix": {
-        "type": "string",
-        "defaultValue": "10.0.4.0/24",
-        "metadata": {
-          "displayName": "JumpBox subnet address prefix",
-          "description": "JumpBox subnet address prefix."
         }
       },
       "hub-shared-network-vnet_optionalSubnetNames": {
