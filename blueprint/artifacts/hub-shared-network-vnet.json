@@ -43,14 +43,6 @@
             "description": "Bastion subnet address prefix."
           }
         },
-        "gatewaySubnetAddressPrefix": {
-          "type": "string",
-          "defaultValue": "10.0.2.0/24",
-          "metadata": {
-            "displayName": "Gateway subnet address prefix",
-            "description": "Gateway subnet address prefix."
-          }
-        },
         "managementSubnetAddressPrefix": {
           "type": "string",
           "defaultValue": "10.0.3.0/24",
@@ -59,14 +51,7 @@
             "description": "Management subnet address prefix."
           }
         },
-        "jumpBoxSubnetAddressPrefix": {
-          "type": "string",
-          "defaultValue": "10.0.4.0/24",
-          "metadata": {
-            "displayName": "JumpBox subnet address prefix",
-            "description": "JumpBox subnet address prefix."
-          }
-        },
+
         "optionalSubnetNames": {
           "type": "array",
           "defaultValue": [],
@@ -139,48 +124,9 @@
             "service-endpoints": []
           },
           {
-            "name": "GatewaySubnet",
-            "address-prefix": "[parameters('gatewaySubnetAddressPrefix')]",
-            "network-security-group": "",
-            "user-defined-route": "",
-            "service-endpoints": [
-              {
-                "service": "Microsoft.AzureCosmosDB"
-              },
-              {
-                "service": "Microsoft.CognitiveServices"
-              },
-              {
-                "service": "Microsoft.ContainerRegistry"
-              },
-              {
-                "service": "Microsoft.EventHub"
-              },
-              {
-                "service": "Microsoft.KeyVault"
-              },
-              {
-                "service": "Microsoft.ServiceBus"
-              },
-              {
-                "service": "Microsoft.Sql"
-              },
-              {
-                "service": "Microsoft.Storage"
-              }
-            ]
-          },
-          {
             "name": "management-subnet",
             "address-prefix": "[parameters('managementSubnetAddressPrefix')]",
             "network-security-group": "management-subnet",
-            "user-defined-route": "default",
-            "service-endpoints": []
-          },
-          {
-            "name": "jump-box-subnet",
-            "address-prefix": "[parameters('jumpBoxSubnetAddressPrefix')]",
-            "network-security-group": "jump-box-subnet",
             "user-defined-route": "default",
             "service-endpoints": []
           }
@@ -328,14 +274,8 @@
       "bastionSubnetAddressPrefix": {
         "value": "[parameters('hub-shared-network-vnet_bastionSubnetAddressPrefix')]"
       },
-      "gatewaySubnetAddressPrefix": {
-        "value": "[parameters('hub-shared-network-vnet_gatewaySubnetAddressPrefix')]"
-      },
       "managementSubnetAddressPrefix": {
         "value": "[parameters('hub-shared-network-vnet_managementSubnetAddressPrefix')]"
-      },
-      "jumpBoxSubnetAddressPrefix": {
-        "value": "[parameters('hub-shared-network-vnet_jumpBoxSubnetAddressPrefix')]"
       },
       "optionalSubnetNames": {
         "value": "[parameters('hub-shared-network-vnet_optionalSubnetNames')]"
