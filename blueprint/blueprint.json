@@ -40,6 +40,26 @@
           "description": "Deploy Hub."
         }
       },
+      "deployAadds": {
+        "type": "bool",
+        "defaultValue": true,
+        "metadata": {
+          "displayName": "Deploy Azure Active Directory Domain Service",
+          "description": "Deploy Azure Active Directory Domain Service."
+        }
+      },
+      "aaddsSku": {
+        "type": "string",
+        "defaultValue": "Standard",
+        "allowedValues": [
+          "Standard",
+          "Enterprise"
+        ],
+        "metadata": {
+          "displayName": "Azure Active Directory Domain Service SKU",
+          "description": "Azure Active Directory Domain Service SKU."
+        }
+      },
       "spokeName": {
         "type": "string",
         "defaultValue": "spoke-workload",
@@ -143,6 +163,13 @@
           "description": "Destination IP addresses for outbound connectivity."
         },
         "defaultValue": "0.0.0.0"
+      },
+      "aaddsDomainName": {
+        "type": "string",
+        "metadata": {
+          "displayName": "Azure ADS Domain Name",
+          "description": "Azure ADS Domain Name"
+        }
       },
       "hub-shared-network-vnet_vnetAddressPrefix": {
         "type": "string",
@@ -256,17 +283,31 @@
           "displayName": "Spoke Resource Group"
         }
       },
+      "SharedManagementResourceGroup": {
+        "name": "[concat(parameters('namePrefix'), '-', 'shared-management', '-rg')]",
+        "location": "[parameters('hubLocation')]",
+        "metadata": {
+          "displayName": "Shared Management Service Resource Group"
+        }
+      },
       "NetworkWatcherResourceGroup": {
         "name": "[parameters('networkWatcherResourceGroup')]",
         "location": "[parameters('networkWatcherResourceGroupLocation')]",
         "metadata": {
           "displayName": "Network Watcher Resource Group"
         }
+      },
+      "MonitoringResourceGroup": {
+        "name": "[parameters('monitoringResourceGroup')]",
+        "location": "[parameters('hubLocation')]",
+        "metadata": {
+          "displayName": "Shared Monitoring Resource Group"
+        }
       }
     },
     "targetScope": "subscription",
     "displayName": "Azure Zero Trust Architecture",
-    "description": "Deploys and configures Azure infrastructure and policies mapped to Zero Trust Architecture."
+    "description": "Deploys and configures Azure infrastructure and policies mapped to Zero Trust Architecture for a Hub and Spoke topology with Azure Virtual Desktop"
   },
   "id": "/providers/Microsoft.Blueprint/blueprints/c09d6b03-f048-4dd4-a5d9-46eda7e47ac4",
   "type": "Microsoft.Blueprint/blueprints",

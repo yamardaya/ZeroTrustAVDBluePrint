@@ -1,0 +1,175 @@
+﻿{
+  "properties": {
+    "template": {
+      "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+      "contentVersion": "1.0.0.0",
+      "parameters": {
+        "namePrefix": {
+          "type": "string",
+          "metadata": {
+            "displayName": "Resource Group and Resource name prefix",
+            "description": "Resource Group and Resource identifier. String to be used as prefix to all Resource Group and Resource names."
+          }
+        },
+        "aaddsDomainName": {
+          "type": "string",
+          "metadata": {
+            "displayName": "Azure ADS Domain Name",
+            "description": "Azure ADS Domain Name"
+          }
+        },
+        "aaddsSku": {
+          "type": "string",
+          "defaultValue": "Enterprise",
+          "allowedValues": [
+            "Standard",
+            "Enterprise"
+          ],
+          "metadata": {
+            "displayName": "Azure ADS SKU",
+            "description": "Azure ADS SKU"
+          }
+        },
+        "hubName": {
+          "type": "string",
+          "defaultValue": "hub-shared",
+          "metadata": {
+            "displayName": "Hub Shared name",
+            "description": "Hub Shared name."
+          }
+        },
+        "logsRetentionInDays": {
+          "type": "int",
+          "defaultValue": 365,
+          "minValue": 0,
+          "maxValue": 365,
+          "metadata": {
+            "displayName": "Log retention in days",
+            "description": "Specifies the number of days that logs will be kept for; a value of 0 will retain data indefinitely"
+          }
+        },
+        "deployAadds": {
+          "type": "bool",
+          "defaultValue": true,
+          "metadata": {
+            "displayName": "Deploy Azure Active Directory Domain Service",
+            "description": "Deploy Azure Active Directory Domain Service."
+          }
+        }
+      },
+      "variables": {
+        "location": "[resourceGroup().location]",
+        "deployment-prefix": "[toLower(concat(parameters('namePrefix'), '-', parameters('hubName')))]",
+        "oms-workspace-resource-group": "[concat(variables('deployment-prefix'), '-rg')]",
+        "oms-workspace-name": "[concat(variables('deployment-prefix'), '-log')]",
+        "vnet-resource-group": "[concat(variables('deployment-prefix'), '-rg')]",
+        "unique-string": "[uniqueString(subscription().id, concat(variables('deployment-prefix')))]",
+        "diagnostic-storage-account-prefix": "[concat(replace(variables('deployment-prefix'), '-', ''), 'diag')]",
+        "diagnostic-storage-account-name": "[toLower(substring(replace(concat(variables('diagnostic-storage-account-prefix'), variables('unique-string'), variables('unique-string')), '-', ''), 0, 23) )]",
+        "vnet-name": "[concat(variables('deployment-prefix'), '-vnet')]",
+        "aadds-subnet-id": "[concat(resourceId(variables('vnet-resource-group'), 'Microsoft.Network/virtualNetworks', variables('vnet-name')) , '/subnets/management-subnet')]",
+        "aadds-name": "[concat(variables('deployment-prefix'), '-aadds')]"
+      },
+      "resources": [
+
+        {
+          "apiVersion": "2020-01-01",
+          "type": "Microsoft.AAD/DomainServices",
+          "name": "[parameters('domainName')]",
+          "location": "[variables('location')]",
+          "condition": "[parameters('deployAadds')]",
+          "tags": {
+            "component": "hub-shared-network-aadds"
+          },
+          "dependsOn": [],
+          "properties": {
+            "domainName": "[parameters('domainName')]",
+            "filteredSync": "[parameters('filteredSync')]",
+            "domainConfigurationType": "[parameters('domainConfigurationType')]",
+            "notificationSettings": "[parameters('notificationSettings')]",
+            "replicaSets": [
+              {
+                "subnetId": "[variables('aadds-subnet-id')]",
+                "location": "[resourceGroup().location]"
+              }
+            ],
+            "sku": "[parameters('aaddsSku')]"
+          }
+        },
+        {
+          "type": "MMicrosoft.AAD/DomainServices/providers/diagnosticSettings",
+          "apiVersion": "2017-05-01-preview",
+          "name": "[concat(variables('domainName'), '/Microsoft.Insights/service')]",
+          "location": "[variables('location')]",
+          "condition": "[parameters('deployAadds')]",
+          "dependsOn": [
+            "[variables('domainName')]"
+          ],
+          "tags": {
+            "component": "hub-shared-network-aadds"
+          },
+          "properties": {
+            "storageAccountId": "[resourceId(variables('oms-workspace-resource-group'), 'Microsoft.Storage/storageAccounts', variables('diagnostic-storage-account-name'))]",
+            "workspaceId": "[resourceId(variables('oms-workspace-resource-group'), 'Microsoft.OperationalInsights/workspaces', variables('oms-workspace-name'))]",
+            "logs": [
+              {
+                "category": "BastionAuditLogs",
+                "enabled": true,
+                "retentionPolicy": {
+                  "enabled": true,
+                  "days": "[parameters('logsRetentionInDays')]"
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "outputs": {}
+    },
+    "parameters": {
+      "namePrefix": {
+        "value": "[parameters('namePrefix')]"
+      },
+      "hubName": {
+        "value": "[parameters('hubName')]"
+      },
+      "logsRetentionInDays": {
+        "value": "[parameters('logsRetentionInDays')]"
+      },
+      "deployAadds": {
+        "value": "[parameters('deployAadds')]"
+      },
+      "aaddsSku": {
+        "value": "[parameters('aaddsSku')]"
+      },
+      "domainConfigurationType": {
+        "value": "FullySynced"
+      },
+      "domainName": {
+        "value": "[parameters('aaddsDomainName')]"
+      },
+      "filteredSync": {
+        "value": "Disabled"
+      },
+      "notificationSettings": {
+        "value": {
+          "notifyGlobalAdmins": "Enabled",
+          "notifyDcAdmins": "Enabled",
+          "additionalRecipients": []
+        }
+      }
+    },
+    "dependsOn": [
+      "hub-shared-security-log",
+      "hub-shared-network-nsg",
+      "hub-shared-network-vnet"
+    ],
+    "resourceGroup": "SharedManagementResourceGroup",
+    "displayName": "Azure Active Directory Domain Service template",
+    "description": "Azure Active Directory Domain Service template."
+  },
+  "kind": "template",
+  "id": "/providers/Microsoft.Blueprint/blueprints/c09d6b03-f048-4dd4-a5d9-46eda7e47ac4/artifacts/1269c3e2-a2d3-44c5-a72f-b2d11cf6f01d",
+  "type": "Microsoft.Blueprint/blueprints/artifacts",
+  "name": "1269c3e2-a2d3-44c5-a72f-b2d11cf6f01d"
+}

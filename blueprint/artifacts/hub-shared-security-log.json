@@ -1444,7 +1444,7 @@
         "value": "[parameters('deployHub')]"
       }
     },
-    "resourceGroup": "HubResourceGroup",
+    "resourceGroup": "MonitoringResourceGroup",
     "displayName": "Azure Log Analytics and Diagnostics template",
     "description": "Azure Log Analytics and Diagnostics template."
   },
