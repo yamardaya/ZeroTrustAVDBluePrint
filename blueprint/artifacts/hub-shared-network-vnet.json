@@ -146,10 +146,11 @@
         ],
         "location": "[resourceGroup().location]",
         "subnets": "[union(variables('static-subnets'), variables('optional-subnets'))]",
-        "oms-workspace-resourceGroup": "[concat(variables('deployment-prefix'), '-rg')]",
-        "oms-workspace-name": "[concat(variables('deployment-prefix'), '-log')]",
-        "unique-string": "[uniqueString(subscription().id, concat(variables('deployment-prefix')))]",
-        "diagnostic-storage-account-prefix": "[concat(replace(variables('deployment-prefix'), '-', ''), 'diag')]",
+        "monitoring-prefix": "[toLower(concat(parameters('namePrefix'), '-monitoring'))]",
+        "oms-workspace-resourceGroup": "[concat(variables('monitoring-prefix'), '-rg')]",
+        "oms-workspace-name": "[concat(variables('monitoring-prefix'), '-log')]",
+        "unique-string": "[uniqueString(subscription().id, concat(variables('monitoring-prefix')))]",
+        "diagnostic-storage-account-prefix": "[concat(replace(variables('monitoring-prefix'), '-', ''), 'diag')]",
         "diagnostic-storage-account-name": "[toLower(substring(replace(concat(variables('diagnostic-storage-account-prefix'), variables('unique-string'), variables('unique-string')), '-', ''), 0, 23) )]"
       },
       "resources": [

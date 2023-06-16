@@ -42,10 +42,17 @@
       },
       "deployAadds": {
         "type": "bool",
-        "defaultValue": true,
+        "defaultValue": false,
         "metadata": {
           "displayName": "Deploy Azure Active Directory Domain Service",
           "description": "Deploy Azure Active Directory Domain Service."
+        }
+      },
+      "aaddsDomainName": {
+        "type": "string",
+        "metadata": {
+          "displayName": "Azure ADS Domain Name",
+          "description": "Azure ADS Domain Name"
         }
       },
       "aaddsSku": {
@@ -140,6 +147,14 @@
           "description": "Name of the Network Watcher Resource Group."
         }
       },
+      "monitoringResourceGroup": {
+        "defaultValue": "monitoring-rg",
+        "type": "string",
+        "metadata": {
+          "displayName": "Monitoring Shared Resource Group name",
+          "description": "Name of the Monitoring Shared Resource Group."
+        }
+      },
       "networkWatcherResourceGroupLocation": {
         "defaultValue": "[parameters('hubLocation')]",
         "type": "string",
@@ -163,13 +178,6 @@
           "description": "Destination IP addresses for outbound connectivity."
         },
         "defaultValue": "0.0.0.0"
-      },
-      "aaddsDomainName": {
-        "type": "string",
-        "metadata": {
-          "displayName": "Azure ADS Domain Name",
-          "description": "Azure ADS Domain Name"
-        }
       },
       "hub-shared-network-vnet_vnetAddressPrefix": {
         "type": "string",
@@ -298,7 +306,7 @@
         }
       },
       "MonitoringResourceGroup": {
-        "name": "[parameters('monitoringResourceGroup')]",
+        "name": "[concat(parameters('namePrefix'),'-',parameters('monitoringResourceGroup'), '-rg')]",
         "location": "[parameters('hubLocation')]",
         "metadata": {
           "displayName": "Shared Monitoring Resource Group"
