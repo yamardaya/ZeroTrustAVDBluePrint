@@ -6,11 +6,8 @@
       "displayName": "Management VM",
       "description": "Management VM",
       "dependsOn": [
-        "avdDeploy",
-        "dnsSharedSvcs",
-        "addsDAUser",
-        "adds",
-        "avdUsers"
+        "hub-shared-network-aad-domain-service",
+        "dnsSharedSvcs"
       ],
       "template": {
       "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",

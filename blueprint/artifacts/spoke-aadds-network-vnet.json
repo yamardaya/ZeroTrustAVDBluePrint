@@ -19,6 +19,7 @@
                     "description": "Hub Subscription Id."
                 }
             },
+
             "hubName": {
                 "type": "string",
                 "defaultValue": "hub-shared",
@@ -27,20 +28,12 @@
                     "description": "Hub Shared name."
                 }
             },
-            "spokeName": {
+            "aaddsSpokeName": {
                 "type": "string",
-                "defaultValue": "spoke-workload",
+                "defaultValue": "spoke-aadds-management",
                 "metadata": {
-                    "displayName": "Spoke Workload name",
-                    "description": "Spoke Workload name."
-                }
-            },
-            "deploySpoke": {
-                "type": "bool",
-                "defaultValue": true,
-                "metadata": {
-                    "displayName": "Deploy Spoke",
-                    "description": "Deploy Spoke."
+                    "displayName": "Spoke Aadds and Management name",
+                    "description": "Spoke Aadds and Management name."
                 }
             },
             "spokeVnetAddressPrefix": {
@@ -92,7 +85,15 @@
                     "displayName": "Log retention in days",
                     "description": "Specifies the number of days that logs will be kept for; a value of 0 will retain data indefinitely."
                 }
-            }
+            },
+            "deployAadds": {
+                "type": "bool",
+                "defaultValue": true,
+                "metadata": {
+                  "displayName": "Deploy Azure Active Directory Domain Service",
+                  "description": "Deploy Azure Active Directory Domain Service."
+                }
+              }
         },
         "variables": {
             "location": "[resourceGroup().location]",
@@ -102,7 +103,7 @@
             "hub-vnet-resource-id": "[resourceId(parameters('hubSubscriptionId'), variables('hub-resource-group-name'), 'Microsoft.Network/virtualNetworks', variables('hub-vnet-name'))]",
             "monitoring-prefix": "[toLower(concat(parameters('namePrefix'), '-monitoring'))]",
             "oms-workspace-resource-group": "[concat(variables('monitoring-prefix'), '-rg')]",
-            "oms-workspace-name": "[concat(variables('monitoring-prefix'), '-log')]",
+            "oms-workspace-name": "[concat(variables('monitoring-prefix'), '-log')]",    
             "unique-string": "[uniqueString(concat('/subscriptions/', parameters('hubSubscriptionId')), concat(variables('monitoring-prefix')))]",
             "diagnostic-storage-account-prefix": "[concat(replace(variables('monitoring-prefix'), '-', ''), 'diag')]",
             "diagnostic-storage-account-name": "[toLower(substring(replace(concat(variables('diagnostic-storage-account-prefix'), variables('unique-string'), variables('unique-string')), '-', ''), 0, 23) )]",
@@ -110,14 +111,20 @@
             "ddos-protection-plan-id": {
                 "id": "[resourceId(variables('hub-resource-group-name'), 'Microsoft.Network/ddosProtectionPlans', variables('ddos-protection-plan-name'))]"
             },
-            "deployment-prefix": "[toLower(concat(parameters('namePrefix'), '-', parameters('spokeName')))]",
+            "deployment-prefix": "[toLower(concat(parameters('namePrefix'), '-', parameters('aaddsSpokeName')))]",
             "vnet-name": "[concat(variables('deployment-prefix'), '-vnet')]",
             "spoke-vnet-resource-id": "[resourceId(subscription().subscriptionId, resourceGroup().name, 'Microsoft.Network/virtualNetworks', variables('vnet-name'))]",
+            "user-defined-routes": [
+                {
+                  "name": "default",
+                  "routes": []
+                }
+              ],
             "static-subnets": [
                 {
-                    "name": "workload-subnet",
+                    "name": "aadds-subnet",
                     "address-prefix": "[parameters('spokeSubnetAddressPrefix')]",
-                    "network-security-group": "workload-subnet",
+                    "network-security-group": "aadds-subnet",
                     "user-defined-route": "default",
                     "service-endpoints": []
                 }
@@ -139,14 +146,32 @@
         },
         "resources": [
             {
+                "type": "Microsoft.Network/routeTables",
+                "apiVersion": "2019-09-01",
+                "name": "[concat(variables('deployment-prefix'), '-', variables('user-defined-routes')[copyIndex()].name, '-udr')]",
+                "location": "[variables('location')]",
+                "condition": "[parameters('deployAadds')]",
+                "tags": {
+                  "component": "hub-shared-network-vnet"
+                },
+                "copy": {
+                  "count": "[length(variables('user-defined-routes'))]",
+                  "name": "udrLoop"
+                },
+                "properties": {}
+              },
+            {
                 "apiVersion": "2020-05-01",
                 "type": "Microsoft.Network/virtualNetworks",
                 "name": "[variables('vnet-name')]",
                 "location": "[variables('location')]",
-                "condition": "[parameters('deploySpoke')]",
+                "condition": "[parameters('deployAadds')]",
                 "tags": {
-                    "component": "spoke-workload-network-vnet"
+                    "component": "spoke-aadds-network-vnet"
                 },
+                "dependsOn": [
+                    "udrLoop"
+                  ],
                 "properties": {
                     "addressSpace": {
                         "addressPrefixes": [
@@ -163,8 +188,8 @@
                                 "name": "[variables('subnets')[copyIndex('subnets')].name]",
                                 "properties": {
                                     "addressPrefix": "[variables('subnets')[copyIndex('subnets')]['address-prefix']]",
-                                    "networkSecurityGroup": "[if(equals(variables('subnets')[copyIndex('subnets')]['network-security-group'], ''), json('null'), json(concat('{\"id\": \"', resourceId(parameters('hubSubscriptionId'), variables('hub-resource-group-name'), 'Microsoft.Network/networkSecurityGroups', concat(variables('hub-deployment-prefix'), '-', variables('subnets')[copyIndex('subnets')]['network-security-group'], '-nsg')), '\"}')))]",
-                                    "routeTable": "[if(equals(variables('subnets')[copyIndex('subnets')]['user-defined-route'], ''), json('null'), json(concat('{\"id\": \"', resourceId(parameters('hubSubscriptionId'), variables('hub-resource-group-name'), 'Microsoft.Network/routeTables', concat(variables('hub-deployment-prefix'), '-', variables('subnets')[copyIndex('subnets')]['user-defined-route'], '-udr')), '\"}')))]",
+                                    "networkSecurityGroup": "[if(equals(variables('subnets')[copyIndex('subnets')]['network-security-group'], ''), json('null'), json(concat('{\"id\": \"', resourceId(parameters('hubSubscriptionId'), resourceGroup().name, 'Microsoft.Network/networkSecurityGroups', concat(variables('deployment-prefix'), '-', variables('subnets')[copyIndex('subnets')]['network-security-group'], '-nsg')), '\"}')))]",
+                                    "routeTable": "[if(equals(variables('subnets')[copyIndex('subnets')]['user-defined-route'], ''), json('null'), json(concat('{\"id\": \"', resourceId(parameters('hubSubscriptionId'), resourceGroup().name, 'Microsoft.Network/routeTables', concat(variables('deployment-prefix'), '-', variables('subnets')[copyIndex('subnets')]['user-defined-route'], '-udr')), '\"}')))]",
                                     "serviceEndpoints": "[if(equals(length(variables('subnets')[copyIndex('subnets')]['service-endpoints']), 0), json('null'), variables('subnets')[copyIndex('subnets')]['service-endpoints'])]"
                                 }
                             }
@@ -176,7 +201,7 @@
                 "type": "Microsoft.Network/virtualNetworks/virtualNetworkPeerings",
                 "apiVersion": "2020-05-01",
                 "name": "[concat(variables('vnet-name'), '/', parameters('hubName'), '-peering')]",
-                "condition": "[parameters('deploySpoke')]",
+                "condition": "[parameters('deployAadds')]",
                 "dependsOn": [
                     "[variables('vnet-name')]"
                 ],
@@ -199,12 +224,12 @@
                 "apiVersion": "2017-05-01-preview",
                 "name": "[concat(variables('vnet-name'),'/Microsoft.Insights/service')]",
                 "location": "[variables('location')]",
-                "condition": "[parameters('deploySpoke')]",
+                "condition": "[parameters('deployAadds')]",
                 "dependsOn": [
                     "[variables('vnet-name')]"
                 ],
                 "tags": {
-                    "component": "spoke-workload-network-vnet"
+                    "component": "spoke-aadds-network-vnet"
                 },
                 "properties": {
                     "storageAccountId": "[resourceId(variables('oms-workspace-resource-group'), 'Microsoft.Storage/storageAccounts', variables('diagnostic-storage-account-name'))]",
@@ -238,12 +263,12 @@
                 "name": "[concat('nested.configure.vnet-peering-', variables('vnet-name'))]",
                 "subscriptionId": "[parameters('hubSubscriptionId')]",
                 "resourceGroup": "[variables('hub-resource-group-name')]",
-                "condition": "[parameters('deploySpoke')]",
+                "condition": "[parameters('deployAadds')]",
                 "dependsOn": [
                     "[resourceId('Microsoft.Network/virtualNetworks', variables('vnet-name'))]"
                 ],
                 "tags": {
-                    "component": "spoke-workload-network-vnet"
+                    "component": "spoke-aadds-network-vnet"
                 },
                 "properties": {
                     "mode": "Incremental",
@@ -312,20 +337,20 @@
         "hubName": {
             "value": "[parameters('hubName')]"
         },
-        "spokeName": {
-            "value": "[parameters('spokeName')]"
+        "aaddsSpokeName": {
+            "value": "[parameters('aaddsSpokeName')]"
         },
         "spokeVnetAddressPrefix": {
-            "value": "[parameters('spoke-workload-network-vnet_spokeVnetAddressPrefix')]"
+            "value": "[parameters('spoke-aadds-network-vnet_spokeVnetAddressPrefix')]"
         },
         "spokeSubnetAddressPrefix": {
-            "value": "[parameters('spoke-workload-network-vnet_spokeSubnetAddressPrefix')]"
+            "value": "[parameters('spoke-aadds-network-vnet_spokeSubnetAddressPrefix')]"
         },
         "spokeOptionalSubnetNames": {
-            "value": "[parameters('spoke-workload-network-vnet_spokeOptionalSubnetNames')]"
+            "value": "[parameters('spoke-aadds-network-vnet_spokeOptionalSubnetNames')]"
         },
         "spokeOptionalSubnetPrefixes": {
-            "value": "[parameters('spoke-workload-network-vnet_spokeOptionalSubnetPrefixes')]"
+            "value": "[parameters('spoke-aadds-network-vnet_spokeOptionalSubnetPrefixes')]"
         },
         "enableDdosProtection": {
             "value": "[parameters('enableDdosProtection')]"
@@ -333,19 +358,20 @@
         "logsRetentionInDays": {
             "value": "[parameters('logsRetentionInDays')]"
         },
-        "deploySpoke": {
-            "value": "[parameters('deploySpoke')]"
+        "deployAadds": {
+            "value": "[parameters('deployAadds')]"
         }
       },
       "dependsOn": [
         "hub-shared-security-log",
         "hub-shared-network-nsg",
         "hub-shared-network-vnet",
-        "hub-shared-network-firewall"
+        "hub-shared-network-firewall",
+        "spoke-aadds-network-nsg"
       ],
-      "resourceGroup": "SpokeResourceGroup",
-      "displayName": "Azure Spoke Workload Virtual Network template",
-      "description": "Azure Spoke Workload Virtual Network template."
+      "resourceGroup": "SharedManagementResourceGroup",
+      "displayName": "Azure Spoke Azure Active Directory Domain Service Virtual Network template",
+      "description": "Azure Spoke Azure Active Directory Domain Service Virtual Network template."
     },
     "kind": "template",
     "id": "/providers/Microsoft.Blueprint/blueprints/c09d6b03-f048-4dd4-a5d9-46eda7e47ac4/artifacts/f29afb8e-1097-4839-99e8-99169d62cfcc",

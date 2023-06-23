@@ -10,7 +10,7 @@
       },
       "hubName": {
         "type": "string",
-        "defaultValue": "hub-shared",
+        "defaultValue": "hub",
         "metadata": {
           "displayName": "Hub name",
           "description": "Name of the Hub."
@@ -69,10 +69,18 @@
       },
       "spokeName": {
         "type": "string",
-        "defaultValue": "spoke-workload",
+        "defaultValue": "spoke-middleware",
         "metadata": {
           "displayName": "Spoke name",
           "description": "Name of the Spoke."
+        }
+      },
+      "aaddsSpokeName": {
+        "type": "string",
+        "defaultValue": "spoke-aadds-management",
+        "metadata": {
+          "displayName": "Spoke AADDS and Management name",
+          "description": "Spoke AADDS and Management name."
         }
       },
       "deploySpoke": {
@@ -99,9 +107,9 @@
       },
       "logsRetentionInDays": {
         "type": "int",
-        "defaultValue": 365,
+        "defaultValue": 90,
         "minValue": 0,
-        "maxValue": 365,
+        "maxValue": 90,
         "metadata": {
           "displayName": "Log retention in days",
           "description": "Specifies the number of days that logs will be kept for; a value of 0 will retain data indefinitely"
@@ -124,7 +132,7 @@
         }
       },
       "networkWatcherName": {
-        "defaultValue": "[concat('NetworkWatcher_', parameters('networkWatcherLocation'))]",
+        "defaultValue": "[concat('networkwatcher_', parameters('networkWatcherLocation'))]",
         "type": "string",
         "metadata": {
           "displayName": "Network Watcher name",
@@ -140,7 +148,7 @@
         }
       },
       "networkWatcherResourceGroup": {
-        "defaultValue": "NetworkWatcherRG",
+        "defaultValue": "networkwatcher",
         "type": "string",
         "metadata": {
           "displayName": "Network Watcher Resource Group name",
@@ -148,7 +156,7 @@
         }
       },
       "monitoringResourceGroup": {
-        "defaultValue": "monitoring-rg",
+        "defaultValue": "monitoring",
         "type": "string",
         "metadata": {
           "displayName": "Monitoring Shared Resource Group name",
@@ -181,7 +189,7 @@
       },
       "hub-shared-network-vnet_vnetAddressPrefix": {
         "type": "string",
-        "defaultValue": "10.0.0.0/16",
+        "defaultValue": "10.200.0.0/16",
         "metadata": {
           "displayName": "Virtual Network address prefix",
           "description": "Virtual Network address prefix."
@@ -189,7 +197,7 @@
       },
       "hub-shared-network-vnet_azureFirewallSubnetAddressPrefix": {
         "type": "string",
-        "defaultValue": "10.0.0.0/26",
+        "defaultValue": "10.200.0.0/26",
         "metadata": {
           "displayName": "Azure Firewall subnet address prefix",
           "description": "Azure Firewall subnet address prefix."
@@ -197,7 +205,7 @@
       },
       "hub-shared-network-vnet_bastionSubnetAddressPrefix": {
         "type": "string",
-        "defaultValue": "10.0.1.0/27",
+        "defaultValue": "10.200.1.0/27",
         "metadata": {
           "displayName": "Bastion subnet address prefix",
           "description": "Bastion subnet address prefix."
@@ -205,7 +213,7 @@
       },
       "hub-shared-network-vnet_managementSubnetAddressPrefix": {
         "type": "string",
-        "defaultValue": "10.0.3.0/24",
+        "defaultValue": "10.200.3.0/24",
         "metadata": {
           "displayName": "Management subnet address prefix",
           "description": "Management subnet address prefix."
@@ -237,23 +245,56 @@
       },
       "hub-shared-network-firewall_azureFirewallPrivateIP": {
         "type": "string",
-        "defaultValue": "10.0.0.4",
+        "defaultValue": "10.200.0.4",
         "metadata": {
           "displayName": "Azure Firewall private IP",
           "description": "Azure Firewall private IP."
         }
       },
-      "spoke-workload-network-vnet_spokeVnetAddressPrefix": {
+      "spoke-aadds-network-vnet_spokeVnetAddressPrefix": {
         "type": "string",
-        "defaultValue": "10.1.0.0/16",
+        "defaultValue": "10.206.0.0/16",
         "metadata": {
           "displayName": "Virtual Network address prefix",
           "description": "Virtual Network address prefix."
         }
       },
+      "spoke-aadds-network-vnet_spokeSubnetAddressPrefix": {
+        "type": "string",
+        "defaultValue": "10.206.0.0/24",
+        "metadata": {
+          "displayName": "Subnet address prefix",
+          "description": "Subnet address prefix."
+        }
+      },
+      "spoke-aadds-network-vnet_spokeOptionalSubnetNames": {
+        "type": "array",
+        "defaultValue": [],
+        "metadata": {
+          "displayName": "Optional subnet address names",
+          "description": "Optional. An Array of subnet names to deploy to the Virtual Network. e.g \"subnet1\",\"subnet2\""
+        }
+      },
+      "spoke-aadds-network-vnet_spokeOptionalSubnetPrefixes": {
+        "type": "array",
+        "defaultValue": [],
+        "metadata": {
+          "displayName": "Optional subnet address prefixes",
+          "description": "Optional. An Array of IP Address Prefixes for subnets. e.g \"10.0.7.0/24\",\"10.0.8.0/24\" "
+        }
+      }
+      ,
+        "spoke-workload-network-vnet_spokeVnetAddressPrefix": {
+          "type": "string",
+          "defaultValue": "10.201.0.0/16",
+          "metadata": {
+            "displayName": "Virtual Network address prefix",
+            "description": "Virtual Network address prefix."
+          }
+        },
       "spoke-workload-network-vnet_spokeSubnetAddressPrefix": {
         "type": "string",
-        "defaultValue": "10.1.0.0/24",
+        "defaultValue": "10.201.0.0/27",
         "metadata": {
           "displayName": "Subnet address prefix",
           "description": "Subnet address prefix."
@@ -295,11 +336,12 @@
         "name": "[concat(parameters('namePrefix'), '-', 'shared-management', '-rg')]",
         "location": "[parameters('hubLocation')]",
         "metadata": {
+
           "displayName": "Shared Management Service Resource Group"
         }
       },
       "NetworkWatcherResourceGroup": {
-        "name": "[parameters('networkWatcherResourceGroup')]",
+        "name": "[concat(parameters('namePrefix'), '-', parameters('networkWatcherResourceGroup'), '-rg')]",
         "location": "[parameters('networkWatcherResourceGroupLocation')]",
         "metadata": {
           "displayName": "Network Watcher Resource Group"

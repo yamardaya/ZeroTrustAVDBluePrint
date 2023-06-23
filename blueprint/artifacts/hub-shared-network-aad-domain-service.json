@@ -29,7 +29,7 @@
         },
         "aaddsSku": {
           "type": "string",
-          "defaultValue": "Enterprise",
+          "defaultValue": "Standard",
           "allowedValues": [
             "Standard",
             "Enterprise"
@@ -39,12 +39,12 @@
             "description": "Azure ADS SKU"
           }
         },
-        "hubName": {
+        "aaddsSpokeName": {
           "type": "string",
-          "defaultValue": "hub-shared",
+          "defaultValue": "spoke-aadds-management",
           "metadata": {
-            "displayName": "Hub Shared name",
-            "description": "Hub Shared name."
+            "displayName": "Aadds Spoke name",
+            "description": "Aadds Spoke name."
           }
         },
         "logsRetentionInDays": {
@@ -68,7 +68,7 @@
       },
       "variables": {
         "location": "[resourceGroup().location]",
-        "deployment-prefix": "[toLower(concat(parameters('namePrefix'), '-', parameters('hubName')))]",
+        "deployment-prefix": "[toLower(concat(parameters('namePrefix'), '-', parameters('aaddsSpokeName')))]",
         "monitoring-prefix": "[toLower(concat(parameters('namePrefix'), '-monitoring'))]",
         "oms-workspace-resource-group": "[concat(variables('monitoring-prefix'), '-rg')]",
         "oms-workspace-name": "[concat(variables('monitoring-prefix'), '-log')]",
@@ -77,7 +77,7 @@
         "diagnostic-storage-account-prefix": "[concat(replace(variables('monitoring-prefix'), '-', ''), 'diag')]",
         "diagnostic-storage-account-name": "[toLower(substring(replace(concat(variables('diagnostic-storage-account-prefix'), variables('unique-string'), variables('unique-string')), '-', ''), 0, 23) )]",
         "vnet-name": "[concat(variables('deployment-prefix'), '-vnet')]",
-        "aadds-subnet-id": "[concat(resourceId(variables('vnet-resource-group'), 'Microsoft.Network/virtualNetworks', variables('vnet-name')) , '/subnets/management-subnet')]",
+        "aadds-subnet-id": "[concat(resourceId(resourceGroup().name, 'Microsoft.Network/virtualNetworks', variables('vnet-name')) , '/subnets/aadds-subnet')]",
         "aadds-name": "[concat(variables('deployment-prefix'), '-aadds')]"
       },
       "resources": [
@@ -89,7 +89,7 @@
           "location": "[variables('location')]",
           "condition": "[parameters('deployAadds')]",
           "tags": {
-            "component": "hub-shared-network-aadds"
+            "component": "spoke-aadds-network-aadds"
           },
           "dependsOn": [],
           "properties": {
@@ -116,14 +116,70 @@
             "[parameters('aaddsDomainName')]"
           ],
           "tags": {
-            "component": "hub-shared-network-aadds"
+            "component": "spoke-aadds-network-aadds"
           },
           "properties": {
             "storageAccountId": "[resourceId(variables('oms-workspace-resource-group'), 'Microsoft.Storage/storageAccounts', variables('diagnostic-storage-account-name'))]",
             "workspaceId": "[resourceId(variables('oms-workspace-resource-group'), 'Microsoft.OperationalInsights/workspaces', variables('oms-workspace-name'))]",
             "logs": [
               {
-                "category": "BastionAuditLogs",
+                "category": "AccountLogon",
+                "enabled": true,
+                "retentionPolicy": {
+                  "enabled": true,
+                  "days": "[parameters('logsRetentionInDays')]"
+                }
+              },
+              {
+                "category": "DetailTracking",
+                "enabled": true,
+                "retentionPolicy": {
+                  "enabled": true,
+                  "days": "[parameters('logsRetentionInDays')]"
+                }
+              },
+              {
+                "category": "AccountManagement",
+                "enabled": true,
+                "retentionPolicy": {
+                  "enabled": true,
+                  "days": "[parameters('logsRetentionInDays')]"
+                }
+              },
+              {
+                "category": "LogonLogoff",
+                "enabled": true,
+                "retentionPolicy": {
+                  "enabled": true,
+                  "days": "[parameters('logsRetentionInDays')]"
+                }
+              },
+              {
+                "category": "ObjectAccess",
+                "enabled": true,
+                "retentionPolicy": {
+                  "enabled": true,
+                  "days": "[parameters('logsRetentionInDays')]"
+                }
+              },
+              {
+                "category": "PrivilegeUse",
+                "enabled": true,
+                "retentionPolicy": {
+                  "enabled": true,
+                  "days": "[parameters('logsRetentionInDays')]"
+                }
+              },
+              {
+                "category": "SystemSecurity",
+                "enabled": true,
+                "retentionPolicy": {
+                  "enabled": true,
+                  "days": "[parameters('logsRetentionInDays')]"
+                }
+              },
+              {
+                "category": "DirectoryServiceAccess",
                 "enabled": true,
                 "retentionPolicy": {
                   "enabled": true,
@@ -140,8 +196,8 @@
       "namePrefix": {
         "value": "[parameters('namePrefix')]"
       },
-      "hubName": {
-        "value": "[parameters('hubName')]"
+      "aaddsSpokeName": {
+        "value": "[parameters('aaddsSpokeName')]"
       },
       "logsRetentionInDays": {
         "value": "[parameters('logsRetentionInDays')]"
@@ -171,8 +227,8 @@
     },
     "dependsOn": [
       "hub-shared-security-log",
-      "hub-shared-network-nsg",
-      "hub-shared-network-vnet"
+      "spoke-aadds-network-nsg",
+      "spoke-aadds-network-vnet"
     ],
     "resourceGroup": "SharedManagementResourceGroup",
     "displayName": "Azure Active Directory Domain Service template",

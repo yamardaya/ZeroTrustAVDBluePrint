@@ -11,15 +11,14 @@
             "description": "Resource Group and Resource identifier. String to be used as prefix to all Resource Group and Resource names."
           }
         },
-        "hubName": {
+        "aaddsSpokeName": {
           "type": "string",
-          "defaultValue": "hub-shared",
+          "defaultValue": "spoke-aadds-management",
           "metadata": {
-            "displayName": "Hub Shared name",
-            "description": "Hub Shared name."
+            "displayName": "Aadds Spoke name",
+            "description": "Aadds Spoke name."
           }
         },
-
         "enableNsgFlowLogs": {
           "type": "bool",
           "defaultValue": true,
@@ -62,18 +61,18 @@
             "description": "Specifies the number of days that logs will be kept for; a value of 0 will retain data indefinitely"
           }
         },
-        "deployHub": {
+        "deployAadds": {
           "type": "bool",
           "defaultValue": true,
           "metadata": {
-            "displayName": "Deploy Hub",
-            "description": "Deploy Hub."
+            "displayName": "Deploy Azure Active Directory Domain Service",
+            "description": "Deploy Azure Active Directory Domain Service."
           }
         }
       },
       "variables": {
         "location": "[resourceGroup().location]",
-        "deployment-prefix": "[toLower(concat(parameters('namePrefix'), '-', parameters('hubName')))]",
+        "deployment-prefix": "[toLower(concat(parameters('namePrefix'), '-', parameters('aaddsSpokeName')))]",
         "monitoring-prefix": "[toLower(concat(parameters('namePrefix'), '-monitoring'))]",
         "unique-string": "[uniqueString(subscription().id, concat(variables('monitoring-prefix')))]",
         "diagnostic-storage-account-prefix": "[concat(replace(variables('monitoring-prefix'), '-', ''), 'diag')]",
@@ -83,9 +82,6 @@
         "application-security-groups": [
           {
             "name": "management"
-          },
-          {
-            "name": "workload"
           }
         ],
         "network-security-groups": [
@@ -129,42 +125,8 @@
             ]
           },
           {
-            "name": "management-subnet",
+            "name": "aadds-subnet",
             "rules": [
-              {
-                "name": "AllowAzureCloudOutBound",
-                "properties": {
-                  "protocol": "TCP",
-                  "sourcePortRange": "*",
-                  "destinationPortRange": "443",
-                  "sourceApplicationSecurityGroups": [
-                    {
-                      "id": "[resourceId('Microsoft.Network/applicationSecurityGroups', concat(variables('deployment-prefix'), '-management-asg'))]"
-                    }
-                  ],
-                  "destinationAddressPrefix": "AzureCloud",
-                  "access": "Allow",
-                  "priority": 3600,
-                  "direction": "Outbound"
-                }
-              },
-              {
-                "name": "AllowIPAddressesOutBound",
-                "properties": {
-                  "protocol": "TCP",
-                  "sourcePortRange": "*",
-                  "destinationPortRange": "443",
-                  "sourceAddressPrefix": "VirtualNetwork",
-                  "destinationAddressPrefix": "[parameters('destinationAddresses')]",
-                  "access": "Allow",
-                  "priority": 3650,
-                  "direction": "Outbound",
-                  "sourcePortRanges": [],
-                  "destinationPortRanges": [],
-                  "sourceAddressPrefixes": [],
-                  "destinationAddressPrefixes": []
-                }
-              },
               {
                 "name": "AllowSyncWithAzureAD",
                 "properties": {
@@ -218,52 +180,12 @@
                   "destinationApplicationSecurityGroups": [],
                   "sourceApplicationSecurityGroups": []
                 }
-              },
-              {
-                "name": "AllowBastionInBound",
-                "properties": {
-                  "protocol": "TCP",
-                  "sourcePortRange": "*",
-                  "access": "Allow",
-                  "priority": 3050,
-                  "direction": "Inbound",
-                  "destinationPortRanges": [
-                    "3389",
-                    "22"
-                  ],
-                  "sourceAddressPrefix": "VirtualNetwork",
-                  "destinationApplicationSecurityGroups": [
-                    {
-                      "id": "[resourceId('Microsoft.Network/applicationSecurityGroups', concat(variables('deployment-prefix'), '-management-asg'))]"
-                    }
-                  ]
-                }
-              }  
+              }
             ]
           },
           {
-            "name": "workload-subnet",
+            "name": "management-subnet",
             "rules": [
-              {
-                "name": "AllowBastionInBound",
-                "properties": {
-                  "protocol": "TCP",
-                  "sourcePortRange": "*",
-                  "access": "Allow",
-                  "priority": 3050,
-                  "direction": "Inbound",
-                  "destinationPortRanges": [
-                    "3389",
-                    "22"
-                  ],
-                  "sourceAddressPrefix": "VirtualNetwork",
-                  "destinationApplicationSecurityGroups": [
-                    {
-                      "id": "[resourceId('Microsoft.Network/applicationSecurityGroups', concat(variables('deployment-prefix'), '-workload-asg'))]"
-                    }
-                  ]
-                }
-              },
               {
                 "name": "AllowAzureCloudOutBound",
                 "properties": {
@@ -272,7 +194,7 @@
                   "destinationPortRange": "443",
                   "sourceApplicationSecurityGroups": [
                     {
-                      "id": "[resourceId('Microsoft.Network/applicationSecurityGroups', concat(variables('deployment-prefix'), '-workload-asg'))]"
+                      "id": "[resourceId('Microsoft.Network/applicationSecurityGroups', concat(variables('deployment-prefix'), '-management-asg'))]"
                     }
                   ],
                   "destinationAddressPrefix": "AzureCloud",
@@ -297,6 +219,26 @@
                   "sourceAddressPrefixes": [],
                   "destinationAddressPrefixes": []
                 }
+              },
+              {
+                "name": "AllowBastionInBound",
+                "properties": {
+                  "protocol": "TCP",
+                  "sourcePortRange": "*",
+                  "access": "Allow",
+                  "priority": 3050,
+                  "direction": "Inbound",
+                  "destinationPortRanges": [
+                    "3389",
+                    "22"
+                  ],
+                  "sourceAddressPrefix": "VirtualNetwork",
+                  "destinationApplicationSecurityGroups": [
+                    {
+                      "id": "[resourceId('Microsoft.Network/applicationSecurityGroups', concat(variables('deployment-prefix'), '-management-asg'))]"
+                    }
+                  ]
+                }
               }
             ]
           }
@@ -308,13 +250,13 @@
           "apiVersion": "2019-09-01",
           "name": "[concat(variables('deployment-prefix'), '-', variables('application-security-groups')[copyIndex('asgLoop')].name, '-asg')]",
           "location": "[variables('location')]",
-          "condition": "[parameters('deployHub')]",
+          "condition": "[parameters('deployAadds')]",
           "copy": {
             "count": "[length(variables('application-security-groups'))]",
             "name": "asgLoop"
           },
           "tags": {
-            "component": "hub-shared-network-nsg"
+            "component": "spoke-aadds-network-nsg"
           },
           "properties": {}
         },
@@ -323,7 +265,7 @@
           "apiVersion": "2019-09-01",
           "name": "[concat(variables('deployment-prefix'), '-', variables('network-security-groups')[copyIndex()].name, '-nsg')]",
           "location": "[resourceGroup().location]",
-          "condition": "[parameters('deployHub')]",
+          "condition": "[parameters('deployAadds')]",
           "copy": {
             "count": "[length(variables('network-security-groups'))]",
             "name": "nsgLoop"
@@ -332,10 +274,10 @@
             "asgLoop"
           ],
           "tags": {
-            "component": "hub-shared-network-nsg"
+            "component": "spoke-aadds-network-nsg"
           },
           "properties": {
-            "securityRules": "[concat(if(equals(copyIndex('nsgLoop'), 0), json('[]'), variables('network-security-groups')[0].rules), variables('network-security-groups')[copyIndex('nsgLoop')].rules)]"
+            "securityRules": "[variables('network-security-groups')[copyIndex('nsgLoop')].rules]"
           },
           "resources": []
         },
@@ -344,7 +286,7 @@
           "apiVersion": "2017-05-01-preview",
           "name": "[concat(variables('deployment-prefix'), '-', variables('network-security-groups')[copyIndex()].name, '-nsg','/Microsoft.Insights/setbypolicy')]",
           "location": "[variables('location')]",
-          "condition": "[parameters('deployHub')]",
+          "condition": "[parameters('deployAadds')]",
           "copy": {
             "count": "[length(variables('network-security-groups'))]",
             "name": "nsgDiagnosticLoop"
@@ -353,7 +295,7 @@
             "nsgLoop"
           ],
           "tags": {
-            "component": "hub-shared-network-nsg"
+            "component": "spoke-aadds-network-nsg"
           },
           "properties": {
             "storageAccountId": "[resourceId(variables('oms-workspace-resourceGroup'), 'Microsoft.Storage/storageAccounts', variables('diagnostic-storage-account-name'))]",
@@ -382,7 +324,7 @@
           "type": "Microsoft.Resources/deployments",
           "apiVersion": "2019-10-01",
           "name": "[concat('nested.configure.nsg-flow-logs-', variables('network-security-groups')[copyIndex('nsgFlowLogsLoop')].name, '-nsg')]",
-          "condition": "[and(parameters('deployHub'), parameters('enableNsgFlowLogs'))]",
+          "condition": "[and(parameters('deployAadds'), parameters('enableNsgFlowLogs'))]",
           "copy": {
             "count": "[length(variables('network-security-groups'))]",
             "name": "nsgFlowLogsLoop"
@@ -393,7 +335,7 @@
           "resourceGroup": "[parameters('networkWatcherResourceGroup')]",
           "subscriptionId": "[subscription().subscriptionId]",
           "tags": {
-            "component": "hub-shared-network-nsg"
+            "component": "spoke-aadds-network-nsg"
           },
           "properties": {
             "mode": "Incremental",
@@ -447,7 +389,7 @@
                   "name": "[concat(parameters('networkWatcherName'),'/', parameters('networkSecurityGroupName'), '-flow')]",
                   "location": "[parameters('nsgResourceGroupLocation')]",
                   "tags": {
-                    "component": "hub-shared-network-nsg"
+                    "component": "spoke-aadds-network-nsg"
                   },
                   "properties": {
                     "targetResourceId": "[resourceId(parameters('nsgResourceGroup'),'Microsoft.Network/networkSecurityGroups', concat(parameters('deploymentPrefix'), '-', parameters('networkSecurityGroupName'), '-nsg'))]",
@@ -510,8 +452,8 @@
       "namePrefix": {
         "value": "[parameters('namePrefix')]"
       },
-      "hubName": {
-        "value": "[parameters('hubName')]"
+      "aaddsSpokeName": {
+        "value": "[parameters('aaddsSpokeName')]"
       },
       "enableNsgFlowLogs": {
         "value": "[parameters('hub-shared-network-nsg_enableNsgFlowLogs')]"
@@ -528,17 +470,17 @@
       "logsRetentionInDays": {
         "value": "[parameters('logsRetentionInDays')]"
       },
-      "deployHub": {
-        "value": "[parameters('deployHub')]"
+      "deployAadds": {
+        "value": "[parameters('deployAadds')]"
       }
     },
     "dependsOn": [
       "hub-shared-security-log",
       "hub-shared-network-watcher"
     ],
-    "resourceGroup": "HubResourceGroup",
-    "displayName": "Azure Network Security Group template",
-    "description": "Azure Network Security Group template."
+    "resourceGroup": "SharedManagementResourceGroup",
+    "displayName": "Aadds Azure Network Security Group template",
+    "description": "Aadds Azure Network Security Group template."
   },
   "kind": "template",
   "id": "/providers/Microsoft.Blueprint/blueprints/c09d6b03-f048-4dd4-a5d9-46eda7e47ac4/artifacts/f475d724-35c0-49d1-9986-2808aadaf9ba",
